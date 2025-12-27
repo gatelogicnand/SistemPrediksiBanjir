@@ -121,7 +121,6 @@ if model is not None:
 # 5. SIDEBAR (INPUT USER)
 # ==========================================
 with st.sidebar:
-    st.image("d:\Downloads\logo-lhokseumawe.png", width=500)
     st.title("Sistem Prediksi Banjir")
     st.markdown("Dashboard ini menggunakan **Machine Learning (K-Means)** untuk mengelompokkan tingkat kerawanan banjir di Kota Lhokseumawe.")
     
@@ -238,4 +237,5 @@ with tab2:
     * **Aman:** Daerah perbukitan atau dataran tinggi (sebagian Muara Satu/Dua).
 
     """)
+
 

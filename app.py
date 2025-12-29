@@ -5,9 +5,6 @@ import joblib
 import plotly.express as px
 import plotly.graph_objects as go
 
-# ==========================================
-# 1. KONFIGURASI HALAMAN (Wajib di baris pertama)
-# ==========================================
 st.set_page_config(
     page_title="Flood Risk Lhokseumawe",
     page_icon="🌊",
@@ -15,9 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==========================================
-# 2. CSS CUSTOM (Untuk Estetika Profesional)
-# ==========================================
 st.markdown("""
     <style>
     .main {
@@ -54,9 +48,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# ==========================================
-# 3. FUNGSI LOAD MODEL
-# ==========================================
 @st.cache_resource
 def load_models():
     try:
@@ -69,39 +60,25 @@ def load_models():
 
 model, scaler = load_models()
 
-# ==========================================
-# 4. LOGIKA INTERPRETASI KLASTER
-# ==========================================
 def get_cluster_info(model, scaler):
     """
     Mengidentifikasi label klaster (0, 1, 2) menjadi tingkat risiko
     berdasarkan karakteristik centroid (Elevasi & Curah Hujan).
     """
     centers_scaled = model.cluster_centers_
-    # Inverse transform untuk melihat nilai asli (mm dan mdpl)
     centers_original = scaler.inverse_transform(centers_scaled)
     
-    # Buat DataFrame Centroid
     df_centers = pd.DataFrame(centers_original, columns=['Curah_Hujan', 'Elevasi'])
     df_centers['Cluster_Label'] = range(len(df_centers))
     
-    # Logika Penentuan Risiko:
-    # Elevasi rendah & Hujan tinggi = Sangat Rawan
-    # Elevasi tinggi = Aman
-    # Kita urutkan berdasarkan Elevasi (Ascending: Rendah ke Tinggi)
     df_sorted = df_centers.sort_values(by='Elevasi').reset_index(drop=True)
     
-    # Mapping dinamis berdasarkan urutan elevasi
-    # Klaster dengan elevasi terendah -> "Sangat Rawan"
-    # Klaster tengah -> "Rawan" / "Siaga"
-    # Klaster elevasi tertinggi -> "Aman"
     
     risk_mapping = {}
     colors = {}
     
-    # Asumsi 3 klaster (jika jumlah klaster berbeda, logika ini menyesuaikan urutan)
     labels = ["Sangat Rawan (Bahaya)", "Waspada (Siaga)", "Aman"]
-    color_codes = ["#FF4B4B", "#FFA500", "#28A745"] # Merah, Oranye, Hijau
+    color_codes = ["#FF4B4B", "#FFA500", "#28A745"]
     
     for i in range(len(df_sorted)):
         original_label = df_sorted.loc[i, 'Cluster_Label']
@@ -117,9 +94,6 @@ def get_cluster_info(model, scaler):
 if model is not None:
     df_centers, risk_map, color_map = get_cluster_info(model, scaler)
 
-# ==========================================
-# 5. SIDEBAR (INPUT USER)
-# ==========================================
 with st.sidebar:
     st.title("Sistem Prediksi Banjir")
     st.markdown("Dashboard ini menggunakan **Machine Learning (K-Means)** untuk mengelompokkan tingkat kerawanan banjir di Kota Lhokseumawe.")
@@ -132,34 +106,25 @@ with st.sidebar:
     
     input_gampong = st.text_input("Nama Desa (Opsional)", "Contoh: Hagu Teungoh")
     
-    # Slider dengan range yang masuk akal untuk Lhokseumawe
     val_hujan = st.slider("🌧️ Curah Hujan (mm/bulan)", min_value=0.0, max_value=600.0, value=250.0, step=0.1)
     val_elevasi = st.slider("⛰️ Elevasi (mdpl)", min_value=0.0, max_value=100.0, value=5.0, step=0.1)
     
     btn_predict = st.button("Analisa Tingkat Kerawanan")
 
-# ==========================================
-# 6. HALAMAN UTAMA
-# ==========================================
 st.title("🌊 Dashboard Kerawanan Banjir Kota Lhokseumawe")
 st.markdown(f"Selamat datang di sistem pendukung keputusan mitigasi bencana. Data input: **{input_kecamatan}**.")
 
-# Tab Layout
 tab1, tab2 = st.tabs(["📊 Analisa & Prediksi", "ℹ️ Informasi Klaster"])
 
 with tab1:
     if model is not None:
-        # --- PROSES PREDIKSI ---
-        # 1. Scale data input user
         input_data = np.array([[val_hujan, val_elevasi]])
         input_scaled = scaler.transform(input_data)
         
-        # 2. Prediksi Klaster
         prediction = model.predict(input_scaled)[0]
         result_text = risk_map[prediction]
         result_color = color_map[prediction]
         
-        # --- TAMPILAN METRICS ---
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric(label="Curah Hujan Input", value=f"{val_hujan} mm")
@@ -174,16 +139,10 @@ with tab1:
             
         st.markdown("---")
         
-        # --- VISUALISASI PLOTLY ---
         st.subheader("📍 Posisi Data dalam Klaster")
         
-        # 1. Buat data dummy background untuk visualisasi area klaster
-        # (Karena kita tidak load dataset 1024 baris di sini, kita simulasi visual scatter di sekitar centroid)
-        
-        # Plot Centroids
         fig = go.Figure()
         
-        # Tambahkan Centroid ke Grafik
         for idx, row in df_centers.iterrows():
             cluster_id = row['Cluster_Label']
             fig.add_trace(go.Scatter(
@@ -194,7 +153,6 @@ with tab1:
                 name=f"Pusat {risk_map[cluster_id]}"
             ))
 
-        # Tambahkan Input User
         fig.add_trace(go.Scatter(
             x=[val_hujan],
             y=[val_elevasi],
@@ -222,7 +180,6 @@ with tab2:
     st.header("Detail Pusat Klaster (Centroids)")
     st.markdown("Tabel berikut menunjukkan karakteristik rata-rata dari setiap kategori risiko yang dipelajari oleh Machine Learning.")
     
-    # Format tabel untuk tampilan
     df_display = df_centers.copy()
     df_display['Kategori Risiko'] = df_display['Cluster_Label'].map(risk_map)
     df_display = df_display[['Kategori Risiko', 'Curah_Hujan', 'Elevasi']]
@@ -237,5 +194,3 @@ with tab2:
     * **Aman:** Daerah perbukitan atau dataran tinggi (sebagian Muara Satu/Dua).
 
     """)
-
-
